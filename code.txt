@@ -1,0 +1,123 @@
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+public class PortfolioOptimizationForm extends JFrame {
+    private JTextField capitalTextField;
+    private JTextField stocksTextField;
+    private JButton calculateButton;
+    private JTextArea outputTextArea;
+
+    // Alpha Vantage API key
+    private static final String API_KEY = "YOUR_API_KEY";
+
+    public PortfolioOptimizationForm() {
+        initComponents();
+        calculateButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                calculateOptimizedWeights();
+            }
+        });
+    }
+
+    private void initComponents() {
+        // Initialize components and layout the JFrame form
+        // ...
+
+        // Set properties such as sizes, labels, and positions of components
+        // ...
+    }
+
+    private void calculateOptimizedWeights() {
+        double capital = Double.parseDouble(capitalTextField.getText());
+        String stocksInput = stocksTextField.getText();
+        String[] stocks = stocksInput.split(",");
+
+        // Retrieve historical stock data for the given stocks
+        List<Double[]> historicalData = getHistoricalStockData(stocks);
+
+        // Perform the portfolio optimization calculations
+        double[] weights = optimizePortfolio(historicalData, capital);
+
+        // Display the optimized weights in the output text area
+        displayWeights(weights);
+    }
+
+    private List<Double[]> getHistoricalStockData(String[] stocks) {
+        List<Double[]> historicalData = new ArrayList<>();
+
+        // Retrieve historical stock data for the given stocks from Alpha Vantage API
+        for (String stock : stocks) {
+            try {
+                String apiUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" +
+                        stock + "&outputsize=full&apikey=" + API_KEY;
+
+                URL url = new URL(apiUrl);
+                URLConnection conn = url.openConnection();
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                String line;
+                boolean firstLine = true;
+
+                while ((line = reader.readLine()) != null) {
+                    if (firstLine) {
+                        firstLine = false;
+                        continue;
+                    }
+
+                    String[] values = line.split(",");
+                    Double[] stockData = new Double[2];
+                    stockData[0] = Double.parseDouble(values[4]); // Closing price
+                    stockData[1] = Double.parseDouble(values[6]); // Volume
+                    historicalData.add(stockData);
+                }
+
+                reader.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                // Handle the exception appropriately (display error message, log, etc.)
+            }
+        }
+
+        return historicalData;
+    }
+
+    private double[] optimizePortfolio(List<Double[]> historicalData, double capital) {
+        // Perform Markowitz Mean-Variance optimization here
+        // ...
+
+        // Placeholder code, assuming equal weights for all stocks
+        int numStocks = historicalData.size();
+        double[] weights = new double[numStocks];
+        double equalWeight = 1.0 / numStocks;
+        for (int i = 0; i < numStocks; i++) {
+            weights[i] = equalWeight;
+        }
+        return weights;
+    }
+
+    private void displayWeights(double[] weights) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < weights.length; i++) {
+            sb.append("Stock ").append(i + 1).append(": ").append(weights[i]).append("\n");
+        }
+        outputTextArea.setText(sb.toString());
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                new PortfolioOptimizationForm().setVisible(true);
+            }
+        });
+    }
+}
